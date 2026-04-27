@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Pytest / Hypothesis
+.pytest_cache/
+.hypothesis/
+
+# VS Code
+.vscode/
+
+# Kiro
+.kiro/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Keep the trained model (needed for Render deployment)
+!model/best_model.pkl

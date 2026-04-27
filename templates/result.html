@@ -160,8 +160,11 @@
       white-space: nowrap;
       margin-top: 2px;
     }
-    .badge-spelling { background: #fee2e2; color: #b91c1c; }
-    .badge-grammar  { background: #dbeafe; color: #1e40af; }
+    .badge-spelling    { background: #fee2e2; color: #b91c1c; }
+    .badge-grammar     { background: #dbeafe; color: #1e40af; }
+    .badge-tense       { background: #fef3c7; color: #92400e; }
+    .badge-article     { background: #d1fae5; color: #065f46; }
+    .badge-punctuation { background: #ede9fe; color: #5b21b6; }
 
     .change-detail {
       font-size: 0.9rem;
@@ -255,7 +258,7 @@
     <h3>What was changed</h3>
     {% for c in changes %}
     <div class="change-item">
-      <span class="change-badge {% if c.type == 'spelling' %}badge-spelling{% else %}badge-grammar{% endif %}">
+      <span class="change-badge badge-{{ c.type }}">
         {{ c.type | capitalize }}
       </span>
       <div class="change-detail">

@@ -1,10 +1,12 @@
 from flask import Flask, render_template, request, jsonify
 import os
 import re
+import logging
 from spellchecker import SpellChecker
 
 app = Flask(__name__)
 spell = SpellChecker()
+logger = logging.getLogger(__name__)
 
 SUBJECT_VERB_MAP = {
     "i": "am", "he": "is", "she": "is", "it": "is",
@@ -85,8 +87,8 @@ IRREGULAR_3RD = {
 }
 
 CONSONANT_SOUND_H = ("hotel","historic","historical","hysterical","habitat","harbor","harvest","hazard")
-CONSONANT_SOUND_VOWEL_LETTER = ("uni","eu","use","used","useful","usual","unique","university","unit","union","uniform","user","european","eucalyptus","euphoria")
-VOWEL_SOUND_H = ("hour","hours","honest","honestly","honesty","honor","honour","heir","heiress","heirloom")
+CONSONANT_SOUND_VOWEL_LETTER = ("uni","eu","use","used","useful","usual","unique","university","unit","union","uniform","user","european","eucalyptus","euphoria","one","once")
+VOWEL_SOUND_H = ("hour","hours","honest","honestly","honesty","honor","honour","heir","heiress","heirloom","herb","herbs")
 
 SKIP_WORDS = {
     "to","the","a","an","very","quite","just","also","not",
@@ -105,33 +107,43 @@ def is_present_participle(word):
     return word.endswith("ing") and len(word) > 4
 
 # ── 1. SPELLING ───────────────────────────────────────────────────────────────
-def correct_spelling(words):
+def correct_spelling(words: list) -> tuple:
     corrected = []
     spell_changes = []
     for word in words:
-        # Strip ALL punctuation for checking
-        stripped = re.sub(r'[^\w]', '', word).strip()
-        stripped_lower = stripped.lower()
-        if not stripped_lower or not stripped_lower.isalpha():
-            corrected.append(word)
-            continue
-        if word[0].isupper():
-            corrected.append(word)
-            continue
-        if len(spell.unknown([stripped_lower])) == 0:
-            corrected.append(word)
-        else:
-            correction = spell.correction(stripped_lower)
-            if correction and correction != stripped_lower:
-                corrected.append(correction)
-                spell_changes.append({
-                    "type": "spelling",
-                    "original": word,
-                    "correction": correction,
-                    "detail": f"'{word}' corrected to '{correction}'"
-                })
-            else:
+        try:
+            # Strip ALL punctuation for checking
+            stripped = re.sub(r'[^\w]', '', word).strip()
+            stripped_lower = stripped.lower()
+            # Req 1.4: skip non-alphabetic tokens
+            if not stripped_lower or not stripped_lower.isalpha():
                 corrected.append(word)
+                continue
+            # Req 1.3: skip proper nouns (uppercase first letter)
+            if word[0].isupper():
+                corrected.append(word)
+                continue
+            # Req 1.2: correctly spelled → unchanged
+            if len(spell.unknown([stripped_lower])) == 0:
+                corrected.append(word)
+            else:
+                # Req 1.1: misspelled → replace with correction
+                correction = spell.correction(stripped_lower)
+                if correction and correction != stripped_lower:
+                    corrected.append(correction)
+                    # Req 1.5: record change
+                    spell_changes.append({
+                        "type": "spelling",
+                        "original": word,
+                        "correction": correction,
+                        "detail": f"'{word}' corrected to '{correction}'"
+                    })
+                else:
+                    # Req 1.6: no valid correction → leave unchanged
+                    corrected.append(word)
+        except Exception:
+            # Graceful failure: leave word unchanged on any unexpected error
+            corrected.append(word)
     return corrected, spell_changes
 
 # ── 2. HELPING VERBS ──────────────────────────────────────────────────────────
@@ -270,40 +282,49 @@ def fix_articles(words):
                     break
             correct_article = "an" if starts_with_vowel else "a"
             if word != correct_article:
-                if result[i][0].isupper():
+                original = result[i]
+                if len(original) > 1 and original.isupper():
+                    correct_article = correct_article.upper()
+                elif original[0].isupper():
                     correct_article = correct_article.capitalize()
-                changes.append({"type": "article", "detail": f"'{result[i]}' → '{correct_article}' before '{result[i+1]}'"})
+                changes.append({"type": "article", "detail": f"'{original}' → '{correct_article}' before '{result[i+1]}'"})
                 result[i] = correct_article
     return result, changes
 
 # ── 5. PUNCTUATION ────────────────────────────────────────────────────────────
 def fix_punctuation(text):
     changes = []
+    # Collapse multiple spaces
     text = re.sub(r' {2,}', ' ', text)
+    # 1. Remove space before punctuation (req 5.4)
     fixed = re.sub(r'\s([?.!,;:])', r'\1', text)
     if fixed != text:
         changes.append({"type": "punctuation", "detail": "Removed extra space before punctuation"})
         text = fixed
+    # 2. Add space after punctuation (req 5.5)
     fixed = re.sub(r'([?.!,;:])([A-Za-z])', r'\1 \2', text)
     if fixed != text:
         changes.append({"type": "punctuation", "detail": "Added missing space after punctuation"})
         text = fixed
+    # 3. Standalone "i" -> "I" BEFORE end-punct so it catches "i" at end of sentence (req 5.3)
+    fixed = re.sub(r'(?<!\w)i(?!\w)', 'I', text)
+    if fixed != text:
+        changes.append({"type": "punctuation", "detail": "Capitalized standalone 'i' -> 'I'"})
+        text = fixed
+    # 4. Capitalize first letter (req 5.2)
     if text and text[0].islower():
         text = text[0].upper() + text[1:]
         changes.append({"type": "punctuation", "detail": "Capitalized first letter of sentence"})
+    # 5. Add end punctuation (req 5.1)
     if text and text[-1] not in ".!?":
         text = text + "."
         changes.append({"type": "punctuation", "detail": "Added missing full stop at end"})
-    fixed = re.sub(r'\b i \b', ' I ', text)
-    fixed = re.sub(r'^i ', 'I ', fixed)
-    fixed = re.sub(r' i$', ' I', fixed)
-    if fixed != text:
-        changes.append({"type": "punctuation", "detail": "Capitalized standalone 'i' → 'I'"})
-        text = fixed
+    # 6. Remove duplicate consecutive punctuation (req 5.6)
     fixed = re.sub(r'([.!?])\1+', r'\1', text)
     if fixed != text:
         changes.append({"type": "punctuation", "detail": "Removed duplicate punctuation"})
         text = fixed
+    # Extra: remove space after opening bracket
     fixed = re.sub(r'\(\s+', '(', text)
     if fixed != text:
         changes.append({"type": "punctuation", "detail": "Removed space after opening bracket"})
@@ -311,20 +332,65 @@ def fix_punctuation(text):
     return text, changes
 
 # ── PIPELINE ──────────────────────────────────────────────────────────────────
-def process_sentence(text):
-    all_changes = []
-    text, c = fix_punctuation(text)
-    all_changes.extend(c)
-    words = text.split()
-    words, c = correct_spelling(words)
-    all_changes.extend(c)
-    words, c = fix_articles(words)
-    all_changes.extend(c)
-    words, c = fix_tense(words)
-    all_changes.extend(c)
-    words, c = fix_helping_verb(words)
-    all_changes.extend(c)
-    return " ".join(words), all_changes
+def process_sentence(text: str) -> tuple:
+    """Apply all corrections in order: punctuation → spelling → article → tense → grammar.
+
+    Each step is wrapped individually so a failure in one step does not abort
+    the rest of the pipeline.  If the entire pipeline fails catastrophically,
+    the original text is returned with an empty changes list (Req 10.2).
+    """
+    original_text = text
+    try:
+        all_changes = []
+
+        # 1. Punctuation
+        try:
+            text, c = fix_punctuation(text)
+            all_changes.extend(c)
+        except Exception as e:
+            logger.error("fix_punctuation failed: %s", e)
+
+        # 2. Spelling
+        try:
+            words = text.split()
+            words, c = correct_spelling(words)
+            all_changes.extend(c)
+            text = " ".join(words)
+        except Exception as e:
+            logger.error("correct_spelling failed: %s", e)
+
+        # 3. Article
+        try:
+            words = text.split()
+            words, c = fix_articles(words)
+            all_changes.extend(c)
+            text = " ".join(words)
+        except Exception as e:
+            logger.error("fix_articles failed: %s", e)
+
+        # 4. Tense
+        try:
+            words = text.split()
+            words, c = fix_tense(words)
+            all_changes.extend(c)
+            text = " ".join(words)
+        except Exception as e:
+            logger.error("fix_tense failed: %s", e)
+
+        # 5. Grammar (helping verbs)
+        try:
+            words = text.split()
+            words, c = fix_helping_verb(words)
+            all_changes.extend(c)
+            text = " ".join(words)
+        except Exception as e:
+            logger.error("fix_helping_verb failed: %s", e)
+
+        return text, all_changes
+
+    except Exception as e:
+        logger.error("process_sentence catastrophic failure: %s", e)
+        return original_text, []
 
 # ── ROUTES ────────────────────────────────────────────────────────────────────
 @app.route("/")
@@ -344,7 +410,7 @@ def correct():
 
 @app.route("/api/correct", methods=["POST"])
 def api_correct():
-    data = request.get_json(force=True)
+    data = request.get_json(force=True, silent=True) or {}
     text = data.get("text", "").strip()
     corrected_text, changes = process_sentence(text)
     return jsonify({"corrected": corrected_text, "details": changes})

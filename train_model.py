@@ -26,6 +26,10 @@ else:
 print("Columns found:", df.columns.tolist())
 print(f"Rows in dataset: {len(df)}")
 
+# Requirement 7.1: Dataset must contain at least 480 words
+assert len(df) >= 480, f"Dataset must have at least 480 rows, but found {len(df)}"
+print(f"✓ Dataset assertion passed: {len(df)} rows >= 480")
+
 # ── Build training data ────────────────────────────────────────────────────────
 rows = []
 for _, r in df.iterrows():
@@ -60,8 +64,19 @@ model = Pipeline([
 model.fit(X, y)
 print("Model trained successfully!")
 
+# Requirement 7.2: Verify pipeline has TfidfVectorizer and LogisticRegression steps
+assert isinstance(model.named_steps["tfidf"], TfidfVectorizer), \
+    "Pipeline step 'tfidf' must be a TfidfVectorizer"
+assert isinstance(model.named_steps["clf"], LogisticRegression), \
+    "Pipeline step 'clf' must be a LogisticRegression"
+print("✓ Model pipeline assertion passed: TfidfVectorizer + LogisticRegression")
+
 # ── Save model ─────────────────────────────────────────────────────────────────
 os.makedirs(os.path.dirname(MODEL_PATH), exist_ok=True)
 joblib.dump(model, MODEL_PATH)
 print(f"Model saved to {MODEL_PATH}")
+
+# Requirement 7.3: Confirm model was saved to model/best_model.pkl
+assert os.path.isfile(MODEL_PATH), f"Model file not found at {MODEL_PATH}"
+print(f"✓ Model file assertion passed: {MODEL_PATH} exists")
 print("Done! Now run: python app.py")
