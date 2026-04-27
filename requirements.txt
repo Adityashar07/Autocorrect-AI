@@ -1,0 +1,6 @@
+flask
+pyspellchecker
+joblib
+numpy
+scikit-learn
+gunicorn
