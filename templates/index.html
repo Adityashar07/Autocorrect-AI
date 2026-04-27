@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Autocorrect AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue-900: #0a1628;
+      --blue-800: #0d2040;
+      --blue-600: #1a4480;
+      --blue-500: #1e56a0;
+      --blue-400: #2d7dd2;
+      --blue-300: #5ba4e5;
+      --blue-100: #dbeafe;
+      --blue-50:  #eff6ff;
+      --white:    #ffffff;
+      --gray-100: #f1f5f9;
+      --gray-400: #94a3b8;
+      --accent:   #38bdf8;
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: var(--blue-50);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* HEADER */
+    header {
+      width: 100%;
+      background: linear-gradient(135deg, var(--blue-900) 0%, var(--blue-600) 100%);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 4px 24px rgba(10,22,40,0.18);
+    }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: var(--accent);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 18px rgba(56,189,248,0.4);
+    }
+    header h1 {
+      font-size: 1.5rem; font-weight: 800;
+      color: var(--white);
+      letter-spacing: -0.5px;
+    }
+    header span { color: var(--accent); }
+
+    /* HERO */
+    .hero {
+      width: 100%;
+      background: linear-gradient(160deg, var(--blue-800) 0%, var(--blue-600) 60%, var(--blue-400) 100%);
+      padding: 60px 20px 80px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 70% 50%, rgba(56,189,248,0.12) 0%, transparent 70%);
+    }
+    .hero h2 {
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 800;
+      color: var(--white);
+      line-height: 1.15;
+      letter-spacing: -1px;
+      position: relative;
+    }
+    .hero h2 em {
+      font-style: normal;
+      color: var(--accent);
+    }
+    .hero p {
+      margin-top: 14px;
+      font-size: 1.05rem;
+      color: rgba(255,255,255,0.72);
+      font-weight: 300;
+      position: relative;
+    }
+
+    /* CARD */
+    .card {
+      background: var(--white);
+      border-radius: 24px;
+      box-shadow: 0 8px 48px rgba(10,22,40,0.10);
+      padding: 40px;
+      width: 100%;
+      max-width: 720px;
+      margin: -40px auto 40px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .card label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--blue-500);
+      margin-bottom: 10px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      border: 2px solid var(--blue-100);
+      border-radius: 14px;
+      padding: 18px;
+      font-family: 'Sora', sans-serif;
+      font-size: 1rem;
+      color: var(--blue-900);
+      background: var(--gray-100);
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      line-height: 1.7;
+    }
+    textarea:focus {
+      border-color: var(--blue-400);
+      box-shadow: 0 0 0 4px rgba(45,125,210,0.12);
+      background: var(--white);
+    }
+    textarea::placeholder { color: var(--gray-400); }
+
+    .btn {
+      margin-top: 20px;
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--blue-500), var(--blue-400));
+      color: var(--white);
+      border: none;
+      border-radius: 14px;
+      font-family: 'Sora', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 18px rgba(30,86,160,0.25);
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(30,86,160,0.35);
+    }
+    .btn:active { transform: translateY(0); }
+
+    .error {
+      margin-top: 14px;
+      padding: 12px 16px;
+      background: #fee2e2;
+      border-left: 4px solid #ef4444;
+      border-radius: 8px;
+      color: #b91c1c;
+      font-size: 0.9rem;
+    }
+
+    /* FEATURES */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      max-width: 720px;
+      width: 100%;
+      margin: 0 auto 60px;
+      padding: 0 20px;
+    }
+    .feature {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 24px;
+      border: 1.5px solid var(--blue-100);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .feature:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 28px rgba(10,22,40,0.08);
+    }
+    .feature-icon {
+      font-size: 1.8rem; margin-bottom: 10px;
+    }
+    .feature h3 {
+      font-size: 0.95rem; font-weight: 700;
+      color: var(--blue-800); margin-bottom: 6px;
+    }
+    .feature p {
+      font-size: 0.82rem; color: var(--gray-400); line-height: 1.5;
+    }
+
+    footer {
+      width: 100%; text-align: center;
+      padding: 20px;
+      font-size: 0.8rem;
+      color: var(--gray-400);
+      border-top: 1px solid var(--blue-100);
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">✦</div>
+  <h1>Autocorrect AI</h1>
+</header>
+
+<div class="hero">
+  <h2>Write <em>Better.</em><br/>Instantly.</h2>
+  <p>AI-powered spelling &amp; grammar correction for every sentence.</p>
+</div>
+
+<div class="card">
+  <form method="POST" action="/correct">
+    <label for="text">Enter your text</label>
+    <textarea id="text" name="text" placeholder="Type or paste your sentence here… e.g. I running to the markt">{{ request.form.get('text', '') }}</textarea>
+    {% if error %}
+    <div class="error">{{ error }}</div>
+    {% endif %}
+    <button class="btn" type="submit">✦ Check &amp; Correct</button>
+  </form>
+</div>
+
+<div class="features">
+  <div class="feature">
+    <div class="feature-icon">🔤</div>
+    <h3>Spell Correction</h3>
+    <p>Detects and fixes misspelled words instantly.</p>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">📝</div>
+    <h3>Grammar Fix</h3>
+    <p>Adds missing helping verbs and fixes sentence structure.</p>
+  </div>
+  <div class="feature">
+    <div class="feature-icon">⚡</div>
+    <h3>Instant Results</h3>
+    <p>Get corrections in milliseconds, no delay.</p>
+  </div>
+</div>
+
+<footer>© 2026 Autocorrect AI · Built with Flask &amp; Python</footer>
+
+</body>
+</html>

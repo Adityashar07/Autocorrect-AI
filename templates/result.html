@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Results — Autocorrect AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --blue-900: #0a1628;
+      --blue-800: #0d2040;
+      --blue-600: #1a4480;
+      --blue-500: #1e56a0;
+      --blue-400: #2d7dd2;
+      --blue-300: #5ba4e5;
+      --blue-100: #dbeafe;
+      --blue-50:  #eff6ff;
+      --white:    #ffffff;
+      --gray-100: #f1f5f9;
+      --gray-400: #94a3b8;
+      --accent:   #38bdf8;
+      --green:    #10b981;
+      --red:      #ef4444;
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: var(--blue-50);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      background: linear-gradient(135deg, var(--blue-900) 0%, var(--blue-600) 100%);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 4px 24px rgba(10,22,40,0.18);
+    }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: var(--accent);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 0 18px rgba(56,189,248,0.4);
+    }
+    header h1 { font-size: 1.5rem; font-weight: 800; color: var(--white); }
+    header span { color: var(--accent); }
+
+    .hero {
+      width: 100%;
+      background: linear-gradient(160deg, var(--blue-800) 0%, var(--blue-600) 60%, var(--blue-400) 100%);
+      padding: 40px 20px 70px;
+      text-align: center;
+    }
+    .hero h2 { font-size: 1.8rem; font-weight: 800; color: var(--white); }
+    .hero p { color: rgba(255,255,255,0.65); margin-top: 6px; font-size: 0.9rem; }
+
+    .main {
+      width: 100%; max-width: 780px;
+      margin: -40px auto 40px;
+      padding: 0 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* STATUS BADGE */
+    .status {
+      padding: 16px 22px;
+      border-radius: 14px;
+      font-weight: 700;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status.ok {
+      background: #d1fae5; color: #065f46;
+      border: 1.5px solid #6ee7b7;
+    }
+    .status.fixed {
+      background: var(--blue-100); color: var(--blue-800);
+      border: 1.5px solid var(--blue-300);
+    }
+
+    /* TEXT COMPARISON */
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    @media(max-width: 540px){ .compare { grid-template-columns: 1fr; } }
+
+    .box {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 4px 20px rgba(10,22,40,0.07);
+    }
+    .box-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .box-label.original { color: var(--red); }
+    .box-label.corrected { color: var(--green); }
+
+    .box-text {
+      font-size: 1.05rem;
+      line-height: 1.7;
+      color: var(--blue-900);
+    }
+    .box.corrected-box {
+      border: 2px solid var(--blue-300);
+      background: var(--blue-50);
+    }
+
+    /* CHANGES LIST */
+    .changes-card {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 4px 20px rgba(10,22,40,0.07);
+    }
+    .changes-card h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--blue-500);
+      margin-bottom: 16px;
+    }
+
+    .change-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--blue-50);
+    }
+    .change-item:last-child { border-bottom: none; }
+
+    .change-badge {
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+      margin-top: 2px;
+    }
+    .badge-spelling { background: #fee2e2; color: #b91c1c; }
+    .badge-grammar  { background: #dbeafe; color: #1e40af; }
+
+    .change-detail {
+      font-size: 0.9rem;
+      color: var(--blue-900);
+      line-height: 1.5;
+    }
+    .change-detail code {
+      font-family: 'DM Mono', monospace;
+      background: var(--gray-100);
+      padding: 1px 7px;
+      border-radius: 5px;
+      font-size: 0.85rem;
+    }
+
+    /* BUTTONS */
+    .actions {
+      display: flex; gap: 12px;
+    }
+    .btn {
+      flex: 1;
+      padding: 15px;
+      border: none;
+      border-radius: 13px;
+      font-family: 'Sora', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--blue-500), var(--blue-400));
+      color: var(--white);
+      box-shadow: 0 4px 16px rgba(30,86,160,0.25);
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(30,86,160,0.35); }
+    .btn-secondary {
+      background: var(--white);
+      color: var(--blue-600);
+      border: 2px solid var(--blue-100);
+    }
+    .btn-secondary:hover { background: var(--blue-50); }
+
+    footer {
+      width: 100%; text-align: center;
+      padding: 20px;
+      font-size: 0.8rem;
+      color: var(--gray-400);
+      border-top: 1px solid var(--blue-100);
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">✦</div>
+  <h1>Autocorrect AI</h1>
+</header>
+
+<div class="hero">
+  <h2>Correction Results</h2>
+  <p>Here's what we found and fixed in your text.</p>
+</div>
+
+<div class="main">
+
+  <!-- STATUS -->
+  {% if not changed %}
+  <div class="status ok">✅ Perfect! No corrections needed.</div>
+  {% else %}
+  <div class="status fixed">✦ {{ change_count }} correction{{ 's' if change_count != 1 }} made</div>
+  {% endif %}
+
+  <!-- COMPARISON -->
+  <div class="compare">
+    <div class="box">
+      <div class="box-label original">● Original Text</div>
+      <div class="box-text">{{ original_text }}</div>
+    </div>
+    <div class="box corrected-box">
+      <div class="box-label corrected">● Corrected Text</div>
+      <div class="box-text">{{ corrected_text }}</div>
+    </div>
+  </div>
+
+  <!-- CHANGES DETAIL -->
+  {% if changes %}
+  <div class="changes-card">
+    <h3>What was changed</h3>
+    {% for c in changes %}
+    <div class="change-item">
+      <span class="change-badge {% if c.type == 'spelling' %}badge-spelling{% else %}badge-grammar{% endif %}">
+        {{ c.type | capitalize }}
+      </span>
+      <div class="change-detail">
+        {% if c.type == 'spelling' %}
+          <code>{{ c.original }}</code> → <code>{{ c.correction }}</code>
+        {% else %}
+          {{ c.detail }}
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ACTIONS -->
+  <div class="actions">
+    <a href="/" class="btn btn-primary">✦ Check Another Text</a>
+    <button class="btn btn-secondary" onclick="navigator.clipboard.writeText('{{ corrected_text }}').then(()=>this.textContent='Copied!')">Copy Result</button>
+  </div>
+
+</div>
+
+<footer>© 2026 Autocorrect AI · Built with Flask &amp; Python</footer>
+
+</body>
+</html>
