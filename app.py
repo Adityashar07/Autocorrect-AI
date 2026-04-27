@@ -471,4 +471,4 @@ def api_correct():
     return jsonify({"corrected": corrected_text, "details": changes})
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=10000, debug=True)
+    app.run(host='0.0.0.0', port=10000, debug=False)
