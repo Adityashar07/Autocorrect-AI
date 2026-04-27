@@ -6,9 +6,6 @@ from spellchecker import SpellChecker
 app = Flask(__name__)
 spell = SpellChecker()
 
-# ─────────────────────────────────────────────────────────────────────────────
-# SUBJECT → HELPING VERB MAP
-# ─────────────────────────────────────────────────────────────────────────────
 SUBJECT_VERB_MAP = {
     "i": "am", "he": "is", "she": "is", "it": "is",
     "we": "are", "they": "are", "you": "are",
@@ -23,26 +20,18 @@ SUBJECT_VERB_MAP = {
     "friends":"are","workers":"are","soldiers":"are","doctors":"are",
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
-# TENSE MARKERS
-# ─────────────────────────────────────────────────────────────────────────────
 PAST_MARKERS = {
-    "yesterday", "last", "ago", "previously", "earlier",
-    "once", "before", "already", "recently", "formerly",
+    "yesterday","last","ago","previously","earlier",
+    "once","before","already","recently","formerly",
 }
 
 FUTURE_MARKERS = {
-    "tomorrow", "soon", "later", "next", "tonight",
-    "eventually", "shortly",
+    "tomorrow","soon","later","next","tonight","eventually","shortly",
 }
 
-THIRD_PERSON_SINGULAR = {"he", "she", "it"}
+THIRD_PERSON_SINGULAR = {"he","she","it"}
+ALL_SUBJECTS = {"i","he","she","it","we","they","you"}
 
-ALL_SUBJECTS = {"i", "he", "she", "it", "we", "they", "you"}
-
-# ─────────────────────────────────────────────────────────────────────────────
-# IRREGULAR VERBS — base → past tense
-# ─────────────────────────────────────────────────────────────────────────────
 IRREGULAR_VERBS = {
     "go":"went","come":"came","run":"ran","eat":"ate","drink":"drank",
     "see":"saw","do":"did","have":"had","make":"made","take":"took",
@@ -69,9 +58,6 @@ IRREGULAR_VERBS = {
     "swing":"swung","weep":"wept","withdraw":"withdrew","wring":"wrung",
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
-# IRREGULAR VERBS — base → 3rd person singular (present)
-# ─────────────────────────────────────────────────────────────────────────────
 IRREGULAR_3RD = {
     "go":"goes","do":"does","have":"has","be":"is",
     "say":"says","get":"gets","make":"makes","come":"comes",
@@ -95,33 +81,13 @@ IRREGULAR_3RD = {
     "dance":"dances","catch":"catches","watch":"watches","wash":"washes",
     "push":"pushes","reach":"reaches","teach":"teaches",
     "finish":"finishes","miss":"misses","pass":"passes",
-    "fix":"fixes","mix":"mixes","lie":"lies","shine":"shines",
-    "ride":"rides","hide":"hides","bite":"bites","wake":"wakes",
-    "wear":"wears","blow":"blows","draw":"draws","fight":"fights",
-    "throw":"throws","choose":"chooses","shake":"shakes",
-    "ring":"rings","think":"thinks","buy":"buys","bring":"brings",
+    "fix":"fixes","mix":"mixes","lie":"lies",
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
-# ARTICLE CORRECTION SETTINGS
-# ─────────────────────────────────────────────────────────────────────────────
-CONSONANT_SOUND_H = (
-    "hotel","historic","historical","hysterical",
-    "habitat","harbor","harvest","hazard",
-)
+CONSONANT_SOUND_H = ("hotel","historic","historical","hysterical","habitat","harbor","harvest","hazard")
+CONSONANT_SOUND_VOWEL_LETTER = ("uni","eu","use","used","useful","usual","unique","university","unit","union","uniform","user","european","eucalyptus","euphoria")
+VOWEL_SOUND_H = ("hour","hours","honest","honestly","honesty","honor","honour","heir","heiress","heirloom")
 
-CONSONANT_SOUND_VOWEL_LETTER = (
-    "uni","eu","use","used","useful","usual","unique",
-    "university","unit","union","uniform","user",
-    "european","eucalyptus","euphoria",
-)
-
-VOWEL_SOUND_H = (
-    "hour","hours","honest","honestly","honesty",
-    "honor","honour","heir","heiress","heirloom",
-)
-
-# Words to skip when looking for main verb
 SKIP_WORDS = {
     "to","the","a","an","very","quite","just","also","not",
     "always","never","often","usually","sometimes","at","in",
@@ -135,19 +101,16 @@ HELPING_VERBS = {
     "shall","should","may","might","must","can","could",
 }
 
-
 def is_present_participle(word):
     return word.endswith("ing") and len(word) > 4
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 1. SPELLING CORRECTION
-# ─────────────────────────────────────────────────────────────────────────────
+# ── 1. SPELLING ───────────────────────────────────────────────────────────────
 def correct_spelling(words):
     corrected = []
     spell_changes = []
     for word in words:
-        stripped = re.sub(r'[^\w\s]','',word)
+        # Strip ALL punctuation for checking
+        stripped = re.sub(r'[^\w]', '', word).strip()
         stripped_lower = stripped.lower()
         if not stripped_lower or not stripped_lower.isalpha():
             corrected.append(word)
@@ -171,10 +134,7 @@ def correct_spelling(words):
                 corrected.append(word)
     return corrected, spell_changes
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 2. GRAMMAR — HELPING VERBS
-# ─────────────────────────────────────────────────────────────────────────────
+# ── 2. HELPING VERBS ──────────────────────────────────────────────────────────
 def fix_helping_verb(words):
     result = list(words)
     i = 0
@@ -202,20 +162,12 @@ def fix_helping_verb(words):
         i += 1
     return result, changes
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 3. TENSE CORRECTION
-# Handles:
-#   - Present: He go → He goes / She have → She has
-#   - Past:    I go yesterday → I went yesterday
-#   - Future:  He go tomorrow → He will go tomorrow
-# ─────────────────────────────────────────────────────────────────────────────
+# ── 3. TENSE ──────────────────────────────────────────────────────────────────
 def fix_tense(words):
     result = list(words)
     changes = []
     text_lower = " ".join(words).lower().split()
 
-    # ── Detect tense ──────────────────────────────────────────────────────────
     detected_tense = None
     for marker in PAST_MARKERS:
         if marker in text_lower:
@@ -227,7 +179,7 @@ def fix_tense(words):
                 detected_tense = "future"
                 break
 
-    # ── PRESENT TENSE: he/she/it + base verb → verb+s/es ─────────────────────
+    # Present: he/she/it + base verb → verb+s/es
     if detected_tense is None:
         for i in range(len(result)):
             word_lower = result[i].lower()
@@ -241,87 +193,61 @@ def fix_tense(words):
                     continue
                 if not next_lower.isalpha() or len(next_lower) < 2:
                     break
-                if (next_lower.endswith("ing") or
-                    next_lower.endswith("ed") or
-                    next_lower.endswith("s")):
+                if next_lower.endswith("ing") or next_lower.endswith("ed") or next_lower.endswith("s"):
                     break
-                # Check irregular 3rd person first
                 if next_lower in IRREGULAR_3RD:
                     fixed = IRREGULAR_3RD[next_lower]
-                    changes.append({
-                        "type": "tense",
-                        "detail": f"'{result[j]}' → '{fixed}' (3rd person singular)"
-                    })
+                    changes.append({"type": "tense", "detail": f"'{result[j]}' → '{fixed}' (3rd person singular)"})
                     result[j] = fixed
                     break
-                # Regular verb rules
                 if next_lower.endswith(("sh","ch","x","z","o")):
                     fixed = next_lower + "es"
                 elif next_lower.endswith("y") and next_lower[-2] not in "aeiou":
                     fixed = next_lower[:-1] + "ies"
                 else:
                     fixed = next_lower + "s"
-                changes.append({
-                    "type": "tense",
-                    "detail": f"'{result[j]}' → '{fixed}' (3rd person singular)"
-                })
+                changes.append({"type": "tense", "detail": f"'{result[j]}' → '{fixed}' (3rd person singular)"})
                 result[j] = fixed
                 break
 
-    # ── PAST TENSE: irregular verb → past form ────────────────────────────────
+    # Past: irregular verbs
     if detected_tense == "past":
         for i, word in enumerate(result):
             w = word.lower()
             if w in IRREGULAR_VERBS:
                 past = IRREGULAR_VERBS[w]
                 if past != w:
-                    changes.append({
-                        "type": "tense",
-                        "detail": f"'{word}' → '{past}' (past tense)"
-                    })
+                    changes.append({"type": "tense", "detail": f"'{word}' → '{past}' (past tense)"})
                     result[i] = past
-    # ── FUTURE TENSE: add "will" before base verb ─────────────
+
+    # Future: add "will" before verb
     if detected_tense == "future":
         for i in range(len(result)):
             word_lower = result[i].lower()
             is_subject = word_lower in ALL_SUBJECTS or result[i] == "I"
             if not is_subject:
-              continue
+                continue
             for j in range(i + 1, min(i + 6, len(result))):
-               next_lower = result[j].lower().strip(".,!?")
-            # Already has will/shall
-            if next_lower in {"will", "shall", "going", "would"}:
+                next_lower = result[j].lower().strip(".,!?")
+                if next_lower in {"will","shall","going","would"}:
+                    break
+                if next_lower in HELPING_VERBS:
+                    break
+                if next_lower in {"the","a","an","to"}:
+                    continue
+                if next_lower in FUTURE_MARKERS:
+                    continue
+                if not next_lower.isalpha() or len(next_lower) < 2:
+                    break
+                if next_lower.endswith("ing"):
+                    break
+                result.insert(j, "will")
+                changes.append({"type": "tense", "detail": f"Added 'will' before '{next_lower}' (future tense)"})
                 break
-            # Stop at helping verbs
-            if next_lower in HELPING_VERBS:
-                break
-            # Skip ONLY articles and prepositions
-            if next_lower in {"the", "a", "an", "to"}:
-                continue
-            # Skip future marker words
-            if next_lower in FUTURE_MARKERS:
-                continue
-            if not next_lower.isalpha() or len(next_lower) < 2:
-                break
-            # Don't add will if already -ing form
-            if next_lower.endswith("ing"):
-                break
-            # Insert "will" before the verb
-            result.insert(j, "will")
-            changes.append({
-                "type": "tense",
-                "detail": f"Added 'will' before '{next_lower}' (future tense)"
-            })
-            break
-    
-             
 
     return result, changes
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 4. ARTICLE CORRECTION (a → an, an → a)
-# ─────────────────────────────────────────────────────────────────────────────
+# ── 4. ARTICLES ───────────────────────────────────────────────────────────────
 def fix_articles(words):
     result = list(words)
     changes = []
@@ -330,7 +256,7 @@ def fix_articles(words):
         next_word = result[i + 1].lower().lstrip("\"'(")
         if not next_word:
             continue
-        if word in ("a", "an"):
+        if word in ("a","an"):
             starts_with_vowel = next_word[0] in "aeiou"
             if next_word in CONSONANT_SOUND_H:
                 starts_with_vowel = False
@@ -346,104 +272,61 @@ def fix_articles(words):
             if word != correct_article:
                 if result[i][0].isupper():
                     correct_article = correct_article.capitalize()
-                changes.append({
-                    "type": "article",
-                    "detail": f"'{result[i]}' → '{correct_article}' before '{result[i+1]}'"
-                })
+                changes.append({"type": "article", "detail": f"'{result[i]}' → '{correct_article}' before '{result[i+1]}'"})
                 result[i] = correct_article
     return result, changes
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# 5. PUNCTUATION FIXING
-# ─────────────────────────────────────────────────────────────────────────────
+# ── 5. PUNCTUATION ────────────────────────────────────────────────────────────
 def fix_punctuation(text):
     changes = []
-
-    # Rule 1: Remove multiple spaces
     text = re.sub(r' {2,}', ' ', text)
-
-    # Rule 2: Remove space BEFORE punctuation
     fixed = re.sub(r'\s([?.!,;:])', r'\1', text)
     if fixed != text:
         changes.append({"type": "punctuation", "detail": "Removed extra space before punctuation"})
         text = fixed
-
-    # Rule 3: Add space AFTER punctuation
     fixed = re.sub(r'([?.!,;:])([A-Za-z])', r'\1 \2', text)
     if fixed != text:
         changes.append({"type": "punctuation", "detail": "Added missing space after punctuation"})
         text = fixed
-
-    # Rule 4: Capitalize first letter
     if text and text[0].islower():
         text = text[0].upper() + text[1:]
         changes.append({"type": "punctuation", "detail": "Capitalized first letter of sentence"})
-
-    # Rule 5: Add full stop at end
     if text and text[-1] not in ".!?":
         text = text + "."
         changes.append({"type": "punctuation", "detail": "Added missing full stop at end"})
-
-    # Rule 6: Fix standalone "i" → "I"
     fixed = re.sub(r'\b i \b', ' I ', text)
     fixed = re.sub(r'^i ', 'I ', fixed)
     fixed = re.sub(r' i$', ' I', fixed)
     if fixed != text:
         changes.append({"type": "punctuation", "detail": "Capitalized standalone 'i' → 'I'"})
         text = fixed
-
-    # Rule 7: Fix double punctuation
     fixed = re.sub(r'([.!?])\1+', r'\1', text)
     if fixed != text:
         changes.append({"type": "punctuation", "detail": "Removed duplicate punctuation"})
         text = fixed
-
-    # Rule 8: Fix space after opening bracket
     fixed = re.sub(r'\(\s+', '(', text)
     if fixed != text:
         changes.append({"type": "punctuation", "detail": "Removed space after opening bracket"})
         text = fixed
-
     return text, changes
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# MAIN PROCESSING PIPELINE
-# Order: Punctuation → Spelling → Articles → Tense → Grammar
-# ─────────────────────────────────────────────────────────────────────────────
+# ── PIPELINE ──────────────────────────────────────────────────────────────────
 def process_sentence(text):
     all_changes = []
-
-    # Step 1: Fix punctuation
-    text, punct_changes = fix_punctuation(text)
-    all_changes.extend(punct_changes)
-
+    text, c = fix_punctuation(text)
+    all_changes.extend(c)
     words = text.split()
+    words, c = correct_spelling(words)
+    all_changes.extend(c)
+    words, c = fix_articles(words)
+    all_changes.extend(c)
+    words, c = fix_tense(words)
+    all_changes.extend(c)
+    words, c = fix_helping_verb(words)
+    all_changes.extend(c)
+    return " ".join(words), all_changes
 
-    # Step 2: Fix spelling
-    words, spell_changes = correct_spelling(words)
-    all_changes.extend(spell_changes)
-
-    # Step 3: Fix articles
-    words, article_changes = fix_articles(words)
-    all_changes.extend(article_changes)
-
-    # Step 4: Fix tense (present / past / future)
-    words, tense_changes = fix_tense(words)
-    all_changes.extend(tense_changes)
-
-    # Step 5: Fix helping verbs
-    words, grammar_changes = fix_helping_verb(words)
-    all_changes.extend(grammar_changes)
-
-    corrected_text = " ".join(words)
-    return corrected_text, all_changes
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# FLASK ROUTES
-# ─────────────────────────────────────────────────────────────────────────────
+# ── ROUTES ────────────────────────────────────────────────────────────────────
 @app.route("/")
 def index():
     return render_template("index.html")
@@ -456,12 +339,8 @@ def correct():
     corrected_text, changes = process_sentence(text)
     changed = corrected_text != text
     return render_template("result.html",
-        original_text=text,
-        corrected_text=corrected_text,
-        changes=changes,
-        change_count=len(changes),
-        changed=changed
-    )
+        original_text=text, corrected_text=corrected_text,
+        changes=changes, change_count=len(changes), changed=changed)
 
 @app.route("/api/correct", methods=["POST"])
 def api_correct():
