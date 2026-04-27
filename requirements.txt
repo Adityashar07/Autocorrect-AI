@@ -4,5 +4,4 @@ joblib
 numpy
 scikit-learn
 gunicorn
-os
 SpellChecker
