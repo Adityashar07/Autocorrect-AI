@@ -2,11 +2,46 @@ from flask import Flask, render_template, request, jsonify
 import os
 import re
 import logging
+import joblib
 from spellchecker import SpellChecker
 
 app = Flask(__name__)
 spell = SpellChecker()
 logger = logging.getLogger(__name__)
+
+# Load ML model if available
+_MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "model", "best_model.pkl")
+try:
+    _ml_model = joblib.load(_MODEL_PATH)
+    logger.info("ML spell model loaded from %s", _MODEL_PATH)
+except Exception:
+    _ml_model = None
+    logger.warning("ML model not found, falling back to pyspellchecker only")
+
+def _best_correction(word_lower):
+    """Return best spelling correction using ML model first, then pyspellchecker candidates."""
+    # Try ML model first
+    if _ml_model is not None:
+        try:
+            pred = _ml_model.predict([word_lower])[0]
+            if pred and pred != word_lower:
+                return pred
+        except Exception:
+            pass
+    # Fall back: pick candidate with smallest edit distance, prefer longer words on tie
+    candidates = spell.candidates(word_lower)
+    if not candidates:
+        return None
+    def edit_dist(a, b):
+        dp = list(range(len(b) + 1))
+        for i, ca in enumerate(a):
+            ndp = [i + 1]
+            for j, cb in enumerate(b):
+                ndp.append(min(dp[j] + (ca != cb), dp[j+1] + 1, ndp[j] + 1))
+            dp = ndp
+        return dp[-1]
+    # Score: (edit_distance, -len) so shorter edit distance wins, longer word breaks ties
+    return min(candidates, key=lambda c: (edit_dist(word_lower, c), -len(c)))
 
 SUBJECT_VERB_MAP = {
     "i": "am", "he": "is", "she": "is", "it": "is",
@@ -132,7 +167,7 @@ def correct_spelling(words: list) -> tuple:
                 corrected.append(word)
             else:
                 # Req 1.1: misspelled → replace with correction
-                correction = spell.correction(stripped_lower)
+                correction = _best_correction(stripped_lower)
                 if correction and correction != stripped_lower:
                     corrected.append(correction + punct_suffix)
                     # Req 1.5: record change
