@@ -112,15 +112,19 @@ def correct_spelling(words: list) -> tuple:
     spell_changes = []
     for word in words:
         try:
-            # Strip ALL punctuation for checking
-            stripped = re.sub(r'[^\w]', '', word).strip()
-            stripped_lower = stripped.lower()
+            # Separate trailing punctuation so "doin?" checks "doin" and reattaches "?"
+            match = re.match(r'^([a-zA-Z]+)([^a-zA-Z]*)$', word)
+            if not match:
+                corrected.append(word)
+                continue
+            alpha_part, punct_suffix = match.group(1), match.group(2)
+            stripped_lower = alpha_part.lower()
             # Req 1.4: skip non-alphabetic tokens
             if not stripped_lower or not stripped_lower.isalpha():
                 corrected.append(word)
                 continue
             # Req 1.3: skip proper nouns (uppercase first letter)
-            if word[0].isupper():
+            if alpha_part[0].isupper():
                 corrected.append(word)
                 continue
             # Req 1.2: correctly spelled → unchanged
@@ -130,13 +134,13 @@ def correct_spelling(words: list) -> tuple:
                 # Req 1.1: misspelled → replace with correction
                 correction = spell.correction(stripped_lower)
                 if correction and correction != stripped_lower:
-                    corrected.append(correction)
+                    corrected.append(correction + punct_suffix)
                     # Req 1.5: record change
                     spell_changes.append({
                         "type": "spelling",
                         "original": word,
                         "correction": correction,
-                        "detail": f"'{word}' corrected to '{correction}'"
+                        "detail": f"'{alpha_part}' corrected to '{correction}'"
                     })
                 else:
                     # Req 1.6: no valid correction → leave unchanged
