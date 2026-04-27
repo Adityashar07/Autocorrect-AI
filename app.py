@@ -147,7 +147,7 @@ def correct_spelling(words):
     corrected = []
     spell_changes = []
     for word in words:
-        stripped = word.strip(".,!?;:'\"")
+        stripped = re.sub(r'[^\w\s]','',word)
         stripped_lower = stripped.lower()
         if not stripped_lower or not stripped_lower.isalpha():
             corrected.append(word)
